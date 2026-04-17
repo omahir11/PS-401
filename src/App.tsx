@@ -29,7 +29,14 @@ const CHARACTERS: PlayerCharacter[] = [
     name: 'Qi Router Swift', 
     maxHp: 100, 
     description: 'A nimble swordmaster of the Frontend Sect. Relies on speed and precision strikes.',
-    attackType: 'melee',
+    imagePath: '/frontend.png',
+    attackImagePaths: [
+      '/frontend_attack_1.png', 
+      '/frontend_attack_2.png', 
+      '/frontend_attack_3.png'
+    ],
+    projectileImagePath: '/frontend_projectile.png',
+    attackType: 'ranged',
     winImagePath: '/frontend_win.png',
     deathImagePath: '/frontend_death.png'
   },
@@ -38,6 +45,12 @@ const CHARACTERS: PlayerCharacter[] = [
     name: 'Iron Body Node', 
     maxHp: 150, 
     description: 'A stalwart practitioner of the Backend Brawlers. Endures heavy damage to deliver crushing blows.',
+    imagePath: '/backend.png',
+    attackImagePaths: [
+      '/backend_attack_1.png', 
+      '/backend_attack_2.png', 
+      '/backend_attack_3.png'
+    ],
     attackType: 'melee',
     winImagePath: '/backend_win.png',
     deathImagePath: '/backend_death.png'
@@ -342,12 +355,12 @@ export default function App() {
             status: 'win'
           };
         } else {
-          addToLog(`${enemy.name} defeated! Choose your next opponent.`, 'system');
+          addToLog(`${enemy.name} defeated!`, 'system');
           return {
             ...prev,
             score: prev.score + 500, // Defeat bonus
             enemiesDefeated: newDefeated,
-            status: 'boss-select'
+            status: 'battle-win'
           };
         }
       });
@@ -359,9 +372,16 @@ export default function App() {
     // Proceed to next question
     const nextQ = getNewQuestion(questionPool, enemy.difficulty);
     if (!nextQ) {
-      // Out of questions? Force win for this scope
+      // Out of questions? Force battle win for this scope, unless it's their 3rd boss
       addToLog('You survived all techniques.', 'system');
-      setGameState(prev => ({ ...prev, status: 'win' }));
+      setGameState(prev => {
+        const newDefeated = prev.enemiesDefeated + 1;
+        return { 
+          ...prev, 
+          enemiesDefeated: newDefeated,
+          status: newDefeated >= 3 ? 'win' : 'battle-win' 
+        }
+      });
       return;
     }
 
@@ -387,6 +407,8 @@ export default function App() {
         handleStart();
       } else if ((gameState.status === 'game-over' || gameState.status === 'win') && e.key === 'Enter') {
         returnToSelect();
+      } else if (gameState.status === 'battle-win' && e.key === 'Enter') {
+        setGameState(prev => ({ ...prev, status: 'boss-select' }));
       }
     };
 
@@ -424,8 +446,15 @@ export default function App() {
         <BossSelectScreen bosses={BOSSES} onSelect={handleSelectBoss} />
       )}
 
-      {(gameState.status === 'win' || gameState.status === 'game-over') && (
-        <EndScreen gameState={gameState} player={playerChar} enemy={enemy} onRestart={returnToSelect} bestScore={bestScore} />
+      {(gameState.status === 'win' || gameState.status === 'battle-win' || gameState.status === 'game-over') && (
+        <EndScreen 
+          gameState={gameState} 
+          player={playerChar} 
+          enemy={enemy} 
+          onRestart={returnToSelect} 
+          onContinue={() => setGameState(prev => ({ ...prev, status: 'boss-select' }))}
+          bestScore={bestScore} 
+        />
       )}
 
       {gameState.status === 'battle' && (

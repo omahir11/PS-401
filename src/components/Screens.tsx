@@ -149,11 +149,14 @@ interface EndScreenProps {
   player?: import('../types').PlayerCharacter | null;
   enemy?: import('../types').Enemy | null;
   onRestart: () => void;
+  onContinue?: () => void;
   bestScore: number;
 }
 
-export const EndScreen: React.FC<EndScreenProps> = ({ gameState, player, enemy, onRestart, bestScore }) => {
-  const isWin = gameState.status === 'win';
+export const EndScreen: React.FC<EndScreenProps> = ({ gameState, player, enemy, onRestart, onContinue, bestScore }) => {
+  const isBattleWin = gameState.status === 'battle-win';
+  const isGameComplete = gameState.status === 'win';
+  const isWin = isBattleWin || isGameComplete;
   const accuracy = Math.round((gameState.correctAnswers / Math.max(1, (gameState.correctAnswers + gameState.wrongAnswers))) * 100);
   const isNewBest = gameState.score > bestScore;
 
@@ -232,11 +235,11 @@ export const EndScreen: React.FC<EndScreenProps> = ({ gameState, player, enemy, 
         <h1 className={`text-3xl md:text-4xl font-black mb-2 uppercase tracking-tight ${
           isWin ? 'text-transparent bg-clip-text bg-gradient-to-r from-yellow-300 to-yellow-600' : 'text-red-500'
         }`}>
-          {isWin ? 'Adversary Defeated' : 'Qi Deviation'}
+          {isGameComplete ? 'Arena Conquered' : (isBattleWin ? 'Adversary Defeated' : 'Qi Deviation')}
         </h1>
         
         <p className="text-slate-400 font-serif italic mb-8">
-          {isWin ? 'Your cultivation has deepened.' : 'You succumbed to the inner demons.'}
+          {isGameComplete ? 'Your name is forged into legend.' : (isBattleWin ? 'Your cultivation has deepened.' : 'You succumbed to the inner demons.')}
         </p>
 
         <div className="bg-black/50 p-6 mb-8 border border-slate-800 flex flex-col gap-4">
@@ -263,10 +266,10 @@ export const EndScreen: React.FC<EndScreenProps> = ({ gameState, player, enemy, 
         <motion.button
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
-          onClick={onRestart}
+          onClick={isBattleWin && onContinue ? onContinue : onRestart}
           className="w-full py-4 bg-slate-800 text-white font-bold text-sm uppercase tracking-widest hover:bg-slate-700 transition-colors border border-slate-700"
         >
-          Return to Realm
+          {isGameComplete ? 'Play Again' : (isBattleWin ? 'Face Next Adversary' : 'Return to Realm')}
         </motion.button>
       </motion.div>
     </div>

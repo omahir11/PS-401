@@ -18,6 +18,7 @@ export interface PlayerCharacter {
   description: string;
   imagePath?: string;
   attackImagePaths?: string[];
+  projectileImagePath?: string;
   attackType?: 'melee' | 'ranged';
   winImagePath?: string;
   deathImagePath?: string;
@@ -44,7 +45,7 @@ export interface GameState {
   correctAnswers: number;
   wrongAnswers: number;
   enemiesDefeated: number;
-  status: 'start' | 'character-select' | 'boss-select' | 'battle' | 'win' | 'game-over';
+  status: 'start' | 'character-select' | 'boss-select' | 'battle' | 'win' | 'battle-win' | 'game-over';
 }
 
 export interface BattleAction {

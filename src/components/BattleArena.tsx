@@ -324,8 +324,12 @@ export const BattleArena: React.FC<BattleArenaProps> = ({
             animate={{ left: '75%', opacity: 1, scale: 1.5 }}
             exit={{ opacity: 0, scale: 2 }}
             transition={{ duration: 0.3 }}
-            className="absolute top-[60%] -translate-y-1/2 z-40 w-16 h-16 bg-cyan-400 rounded-full blur-[10px] mix-blend-screen pointer-events-none drop-shadow-[0_0_20px_rgba(6,182,212,1)]"
-          />
+            className={`absolute top-[70%] -translate-y-1/2 z-40 w-24 h-24 ${player?.projectileImagePath ? '' : 'bg-cyan-400 rounded-full blur-[10px] mix-blend-screen'} pointer-events-none drop-shadow-[0_0_20px_rgba(6,182,212,1)]`}
+          >
+            {player?.projectileImagePath && (
+              <img src={player.projectileImagePath} alt="Projectile" className="w-full h-full object-contain" />
+            )}
+          </motion.div>
         )}
 
         {/* Enemy Ranged Projectile */}
@@ -336,7 +340,7 @@ export const BattleArena: React.FC<BattleArenaProps> = ({
             animate={{ left: '20%', opacity: 1, scale: 1.5 }}
             exit={{ opacity: 0, scale: 2 }}
             transition={{ duration: 0.3 }}
-            className="absolute top-[60%] -translate-y-1/2 z-40 w-16 h-16 bg-red-500 rounded-full blur-[10px] mix-blend-screen pointer-events-none drop-shadow-[0_0_20px_rgba(239,68,68,1)]"
+            className="absolute top-[70%] -translate-y-1/2 z-40 w-24 h-24 bg-red-500 rounded-full blur-[10px] mix-blend-screen pointer-events-none drop-shadow-[0_0_20px_rgba(239,68,68,1)]"
           />
         )}
 
@@ -347,7 +351,7 @@ export const BattleArena: React.FC<BattleArenaProps> = ({
             initial={{ opacity: 0, scale: 0 }}
             animate={{ opacity: 1, scale: 2 }}
             exit={{ opacity: 0, scale: 3 }}
-            className="absolute top-[60%] right-[20%] -translate-y-1/2 z-40 pointer-events-none w-32 h-32 bg-cyan-400 rounded-full blur-[20px] mix-blend-screen"
+            className="absolute top-[70%] right-[20%] -translate-y-1/2 z-40 pointer-events-none w-32 h-32 bg-cyan-400 rounded-full blur-[20px] mix-blend-screen"
             transition={{ duration: 0.2, delay: playerAttackType === 'ranged' ? 0.2 : 0.1 }}
           />
         )}
@@ -359,7 +363,7 @@ export const BattleArena: React.FC<BattleArenaProps> = ({
             initial={{ opacity: 0, scale: 0 }}
             animate={{ opacity: 1, scale: 2 }}
             exit={{ opacity: 0, scale: 3 }}
-            className="absolute top-[60%] left-[20%] -translate-y-1/2 z-40 pointer-events-none w-32 h-32 bg-red-600 rounded-full blur-[20px] mix-blend-screen"
+            className="absolute top-[70%] left-[20%] -translate-y-1/2 z-40 pointer-events-none w-32 h-32 bg-red-600 rounded-full blur-[20px] mix-blend-screen"
             transition={{ duration: 0.2, delay: enemyAttackType === 'ranged' ? 0.2 : 0.1 }}
           />
         )}
