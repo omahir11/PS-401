@@ -9,14 +9,81 @@ import { motion, AnimatePresence } from 'motion/react';
 
 // Definitions
 const CHARACTERS: PlayerCharacter[] = [
-  { id: 'frontend', name: 'Qi Router Swift', maxHp: 100, description: 'A nimble swordmaster of the Frontend Sect. Relies on speed and precision strikes.' },
-  { id: 'backend', name: 'Iron Body Node', maxHp: 150, description: 'A stalwart practitioner of the Backend Brawlers. Endures heavy damage to deliver crushing blows.' },
+  { 
+    id: 'hero', 
+    name: 'Golden Tome Novice', 
+    maxHp: 120, 
+    description: 'A spirited youth holding an ancient scroll. Balanced stats and unyielding determination.', 
+    imagePath: '/hero.png',
+    attackImagePaths: [
+      '/hero_attack_1.png', 
+      '/hero_attack_2.png', 
+      '/hero_attack_3.png'
+    ],
+    attackType: 'melee',
+    winImagePath: '/hero_win.png',
+    deathImagePath: '/hero_death.png'
+  },
+  { 
+    id: 'frontend', 
+    name: 'Qi Router Swift', 
+    maxHp: 100, 
+    description: 'A nimble swordmaster of the Frontend Sect. Relies on speed and precision strikes.',
+    attackType: 'melee',
+    winImagePath: '/frontend_win.png',
+    deathImagePath: '/frontend_death.png'
+  },
+  { 
+    id: 'backend', 
+    name: 'Iron Body Node', 
+    maxHp: 150, 
+    description: 'A stalwart practitioner of the Backend Brawlers. Endures heavy damage to deliver crushing blows.',
+    attackType: 'melee',
+    winImagePath: '/backend_win.png',
+    deathImagePath: '/backend_death.png'
+  },
 ];
 
 const BOSSES: Enemy[] = [
-  { id: 'disciple', title: 'Null Pointer Disciple', name: 'Junior Wei', maxHp: 80, currentHp: 80, difficulty: 'easy' },
-  { id: 'demon', title: 'Asynchronous Heavenly Demon', name: 'Sect Leader Await', maxHp: 150, currentHp: 150, difficulty: 'medium' },
-  { id: 'grandmaster', title: 'Legacy Code Grandmaster', name: 'Elder Monolith', maxHp: 200, currentHp: 200, difficulty: 'hard' },
+  { 
+    id: 'disciple', 
+    title: 'Null Pointer Disciple', 
+    name: 'Junior Wei', 
+    maxHp: 80, 
+    currentHp: 80, 
+    difficulty: 'easy',
+    imagePath: '/villain_easy.png',
+    attackImagePaths: ['/villain_easy_attack_1.png', '/villain_easy_attack_2.png', '/villain_easy_attack_3.png'],
+    attackType: 'melee',
+    winImagePath: '/villain_easy_win.png',
+    deathImagePath: '/villain_easy_death.png'
+  },
+  { 
+    id: 'demon', 
+    title: 'Asynchronous Heavenly Demon', 
+    name: 'Sect Leader Await', 
+    maxHp: 150, 
+    currentHp: 150, 
+    difficulty: 'medium',
+    imagePath: '/villain_medium.png',
+    attackImagePaths: ['/villain_medium_attack_1.png', '/villain_medium_attack_2.png', '/villain_medium_attack_3.png'],
+    attackType: 'ranged',
+    winImagePath: '/villain_medium_win.png',
+    deathImagePath: '/villain_medium_death.png'
+  },
+  { 
+    id: 'grandmaster', 
+    title: 'Legacy Code Grandmaster', 
+    name: 'Elder Monolith', 
+    maxHp: 200, 
+    currentHp: 200, 
+    difficulty: 'hard',
+    imagePath: '/villain_hard.png',
+    attackImagePaths: ['/villain_hard_attack_1.png', '/villain_hard_attack_2.png', '/villain_hard_attack_3.png'],
+    attackType: 'ranged',
+    winImagePath: '/villain_hard_win.png',
+    deathImagePath: '/villain_hard_death.png'
+  },
 ];
 
 const DAMAGE_MAP = { easy: 20, medium: 25, hard: 30 };
@@ -137,26 +204,48 @@ export default function App() {
 
   // Timer Effect
   useEffect(() => {
-    if (gameState.status !== 'battle' || isAnswering || !currentQuestion) {
+    if (gameState.status !== 'battle' || isAnswering || !currentQuestion || timeLeft <= 0) {
       if (timerRef.current) clearInterval(timerRef.current);
       return;
     }
 
     timerRef.current = window.setInterval(() => {
-      setTimeLeft(prev => {
-        if (prev <= 1) {
-          handleTimeOut();
-          return 0;
-        }
-        return prev - 1;
-      });
+      setTimeLeft(prev => prev - 1);
     }, 1000);
 
     return () => {
       if (timerRef.current) clearInterval(timerRef.current);
     };
+  }, [gameState.status, isAnswering, currentQuestion, timeLeft]);
+
+  // Store a ref to nextTurn so our timeout always grabs the freshest state
+  const nextTurnRef = useRef<() => void>(() => {});
+
+  // Update the ref to the latest nextTurn every render
+  useEffect(() => {
+    nextTurnRef.current = nextTurn;
+  });
+
+  // Handle auto-proceed when showFeedback is true
+  useEffect(() => {
+    let timeoutId: number;
+    if (showFeedback && gameState.status === 'battle') {
+      timeoutId = window.setTimeout(() => {
+        nextTurnRef.current();
+      }, 3000);
+    }
+    return () => {
+      if (timeoutId) window.clearTimeout(timeoutId);
+    };
+  }, [showFeedback, gameState.status]);
+
+  // Handle timeout when timeLeft reaches 0
+  useEffect(() => {
+    if (timeLeft === 0 && !isAnswering && gameState.status === 'battle') {
+      handleTimeOut();
+    }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [gameState.status, isAnswering, currentQuestion]);
+  }, [timeLeft, isAnswering, gameState.status]);
 
   const handleTimeOut = () => {
     setIsAnswering(true);
@@ -237,13 +326,29 @@ export default function App() {
     }
 
     if (enemy.currentHp <= 0) {
-      setGameState(prev => ({
-        ...prev,
-        score: prev.score + 500, // Defeat bonus
-        enemiesDefeated: prev.enemiesDefeated + 1,
-        status: 'win'
-      }));
-      addToLog(`${enemy.name} defeated! +500 pts`, 'system');
+      // Enemy defeated
+      setGameState(prev => {
+        const newDefeated = prev.enemiesDefeated + 1;
+        if (newDefeated >= 3) {
+          addToLog(`${enemy.name} defeated! You have conquered the Arena!`, 'system');
+          return {
+            ...prev,
+            score: prev.score + 1000, // Grand Defeat bonus
+            enemiesDefeated: newDefeated,
+            status: 'win'
+          };
+        } else {
+          addToLog(`${enemy.name} defeated! Choose your next opponent.`, 'system');
+          return {
+            ...prev,
+            score: prev.score + 500, // Defeat bonus
+            enemiesDefeated: newDefeated,
+            status: 'boss-select'
+          };
+        }
+      });
+      // We don't setEnemy(null) immediately so it can be passed to EndScreen 
+      // It gets overwritten safely anyway when the player picks a new boss!
       return;
     }
 
@@ -273,8 +378,6 @@ export default function App() {
               handleAnswer(idx);
             }
           }
-        } else if (showFeedback && e.key === 'Enter') {
-          nextTurn();
         }
       } else if ((gameState.status === 'start') && e.key === 'Enter') {
         handleStart();
@@ -318,7 +421,7 @@ export default function App() {
       )}
 
       {(gameState.status === 'win' || gameState.status === 'game-over') && (
-        <EndScreen gameState={gameState} onRestart={returnToSelect} bestScore={bestScore} />
+        <EndScreen gameState={gameState} player={playerChar} enemy={enemy} onRestart={returnToSelect} bestScore={bestScore} />
       )}
 
       {gameState.status === 'battle' && (
@@ -362,7 +465,7 @@ export default function App() {
           {/* Next Turn Button / Battle Log */}
           <div className="mt-6 flex flex-col md:flex-row gap-4 items-end justify-between">
             {/* Battle Log */}
-            <div className="w-full md:w-2/3 h-24 overflow-hidden relative bg-black/40 p-3 border border-slate-800">
+            <div className="w-full h-24 overflow-hidden relative bg-black/40 p-3 border border-slate-800">
               <div className="absolute top-0 left-0 w-full h-4 bg-gradient-to-b from-black/60 to-transparent z-10"/>
               <div className="flex flex-col justify-end h-full font-mono text-xs opacity-80 gap-1">
                 <AnimatePresence initial={false}>
@@ -382,18 +485,7 @@ export default function App() {
                 </AnimatePresence>
               </div>
             </div>
-
-            {/* Action Prompt */}
-            {showFeedback && (
-              <motion.button
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                onClick={nextTurn}
-                className="w-full md:w-1/3 py-4 bg-cyan-600 hover:bg-cyan-500 text-slate-900 font-black uppercase tracking-widest transition-colors shadow-[0_0_15px_rgba(6,182,212,0.5)] border border-cyan-400"
-              >
-                Proceed <span className="opacity-50 ml-1 text-xs">(Enter)</span>
-              </motion.button>
-            )}
+            {/* Auto-proceed logic is handled centrally via useEffect hooks above */}
           </div>
 
         </div>

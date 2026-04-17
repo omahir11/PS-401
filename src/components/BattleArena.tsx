@@ -99,6 +99,61 @@ const LegacyCodeGrandmaster = () => (
   </svg>
 );
 
+// ----------------------------------------------------
+// DYNAMIC SPRITE COMPONENT
+// ----------------------------------------------------
+const DynamicSprite = ({ imagePath, attackImagePaths, isAttacking, facingLeft, fallbackComponent }: { imagePath?: string, attackImagePaths?: string[], isAttacking: boolean, facingLeft: boolean, fallbackComponent: React.ReactNode }) => {
+  const [imgErr, setImgErr] = React.useState(false);
+  const [validAttacks, setValidAttacks] = React.useState<string[]>([]);
+  const [attackIdx, setAttackIdx] = React.useState(0);
+
+  // Preload and validate images on mount
+  React.useEffect(() => {
+    if (attackImagePaths && attackImagePaths.length > 0) {
+      const valid: string[] = [];
+      let checked = 0;
+      
+      attackImagePaths.forEach(src => {
+        const img = new Image();
+        img.onload = () => {
+          valid.push(src);
+          checked++;
+          if (checked === attackImagePaths.length) setValidAttacks(valid);
+        };
+        img.onerror = () => {
+          checked++;
+          if (checked === attackImagePaths.length) setValidAttacks(valid);
+        };
+        img.src = src;
+      });
+    }
+  }, [attackImagePaths]);
+
+  React.useEffect(() => {
+    if (isAttacking && validAttacks.length > 0) {
+      setAttackIdx(Math.floor(Math.random() * validAttacks.length));
+    }
+  }, [isAttacking, validAttacks.length]);
+
+  const attackPath = validAttacks.length > 0 ? validAttacks[attackIdx] : undefined;
+  const mainPath = imagePath;
+
+  const attackValid = isAttacking && attackPath;
+  const mainValid = mainPath && !imgErr;
+
+  const flipClass = facingLeft ? '-scale-x-100' : '';
+
+  if (attackValid) {
+    return <img src={attackPath} className={`w-full h-full object-contain drop-shadow-2xl ${flipClass}`} alt="Attacking" />;
+  }
+  
+  if (mainValid) {
+    return <img src={mainPath} className={`w-full h-full object-contain drop-shadow-2xl ${flipClass}`} alt="Idle" onError={() => setImgErr(true)} />;
+  }
+
+  return <>{fallbackComponent}</>;
+};
+
 export const BattleArena: React.FC<BattleArenaProps> = ({
   enemy,
   player,
@@ -109,16 +164,35 @@ export const BattleArena: React.FC<BattleArenaProps> = ({
   damageTakenByEnemy,
   damageTakenByPlayer
 }) => {
+  const playerAttackType = player?.attackType || 'melee';
+  const enemyAttackType = enemy?.attackType || 'melee';
+
+  const playerAnim = isPlayerAttacking 
+    ? (playerAttackType === 'melee' ? { x: [0, 250, -20, 0], scale: [1, 1.2, 0.9, 1], zIndex: 50 } : { x: [0, 20, -5, 0], scale: [1, 1.1, 0.95, 1], zIndex: 50 }) 
+    : isEnemyAttacking 
+    ? { x: [0, -20, 10, -5, 0], filter: ['brightness(1)', 'brightness(10) hue-rotate(90deg)', 'brightness(1)'] } 
+    : { y: [0, -5, 0] };
+
+  const enemyAnim = isEnemyAttacking 
+    ? (enemyAttackType === 'melee' ? { x: [0, -250, 20, 0], scale: [1, 1.2, 0.9, 1], zIndex: 50 } : { x: [0, -20, 5, 0], scale: [1, 1.1, 0.95, 1], zIndex: 50 }) 
+    : isPlayerAttacking 
+    ? { x: [0, 20, -10, 5, 0], filter: ['brightness(1)', 'brightness(10) saturate(2)', 'brightness(1)'] } 
+    : { y: [0, -5, 0] };
   return (
     <div className="relative w-full aspect-video rounded-xl overflow-hidden shadow-[0_0_50px_rgba(0,0,0,0.8)] border-4 border-slate-800 flex items-end justify-between px-8 md:px-24 pb-12">
       {/* ---------------- BACKGROUND LAYER ---------------- */}
-      <div className="absolute inset-0 bg-gradient-to-b from-red-950 via-slate-900 to-black pointer-events-none z-0 overflow-hidden">
-        {/* Blood Moon */}
-        <motion.div 
-          className="absolute top-10 left-1/2 -translate-x-1/2 w-48 h-48 rounded-full bg-red-600 blur-[2px]"
-          animate={{ boxShadow: ['0 0 40px 10px rgba(220,38,38,0.5)', '0 0 60px 20px rgba(220,38,38,0.3)', '0 0 40px 10px rgba(220,38,38,0.5)'] }}
-          transition={{ duration: 4, repeat: Infinity }}
+      <div className="absolute inset-0 bg-slate-950 pointer-events-none z-0 overflow-hidden">
+        {/* Custom Uploaded Background */}
+        <img 
+          src="/background.png" 
+          alt="Battlefield"
+          className="absolute inset-0 w-full h-full object-cover opacity-80"
+          onError={(e) => { e.currentTarget.style.display = 'none'; }}
         />
+        {/* Base Layer gradient */}
+        <div className="absolute inset-0 bg-gradient-to-b from-slate-900/30 via-slate-900/40 to-black/90 mix-blend-multiply"></div>
+        {/* Atmosphere layer */}
+        <div className="absolute inset-0 pointer-events-none z-0 overflow-hidden">
         {/* Background Mountains (SVG) */}
         <svg preserveAspectRatio="none" viewBox="0 0 100 100" className="absolute bottom-0 w-full h-1/2 opacity-30">
           <path d="M0 100 L0 50 L20 30 L40 60 L70 10 L100 40 L100 100 Z" fill="#0f172a" />
@@ -126,6 +200,7 @@ export const BattleArena: React.FC<BattleArenaProps> = ({
         </svg>
         {/* Ground */}
         <div className="absolute bottom-0 w-full h-24 bg-gradient-to-t from-black to-transparent" />
+      </div>
       </div>
 
       {/* ---------------- PLAYER SIDE ---------------- */}
@@ -148,13 +223,19 @@ export const BattleArena: React.FC<BattleArenaProps> = ({
         </div>
 
         {/* Character Visual */}
-        <div className="w-32 h-32 md:w-48 md:h-48 relative">
+        <div className="w-32 h-32 md:w-48 md:h-48 relative flex items-center justify-center">
           <motion.div
-            animate={isPlayerAttacking ? { x: [0, 150, -20, 0], scale: [1, 1.2, 0.9, 1], zIndex: 50 } : isEnemyAttacking ? { x: [0, -20, 10, -5, 0], filter: ['brightness(1)', 'brightness(10) hue-rotate(90deg)', 'brightness(1)'] } : { y: [0, -5, 0] }}
+            animate={playerAnim}
             transition={isPlayerAttacking ? { duration: 0.4 } : isEnemyAttacking ? { duration: 0.5 } : { duration: 2, repeat: Infinity, ease: 'easeInOut' }}
             className="w-full h-full"
           >
-            {player?.id === 'frontend' ? <FrontendSwordsman /> : <BackendBrawler />}
+            <DynamicSprite 
+              isAttacking={isPlayerAttacking}
+              facingLeft={false}
+              imagePath={player?.imagePath}
+              attackImagePaths={player?.attackImagePaths}
+              fallbackComponent={player?.id === 'frontend' ? <FrontendSwordsman /> : <BackendBrawler />}
+            />
           </motion.div>
           
           <AnimatePresence>
@@ -198,13 +279,21 @@ export const BattleArena: React.FC<BattleArenaProps> = ({
           {/* Enemy Visual */}
           <div className="w-32 h-32 md:w-56 md:h-56 relative">
             <motion.div
-              animate={isEnemyAttacking ? { x: [0, -150, 20, 0], scale: [1, 1.2, 0.9, 1], zIndex: 50 } : isPlayerAttacking ? { x: [0, 20, -10, 5, 0], filter: ['brightness(1)', 'brightness(10) saturate(2)', 'brightness(1)'] } : { y: [0, -5, 0] }}
+              animate={enemyAnim}
               transition={isEnemyAttacking ? { duration: 0.4 } : isPlayerAttacking ? { duration: 0.5 } : { duration: 2.5, repeat: Infinity, ease: 'easeInOut', delay: 0.5 }}
               className="w-full h-full"
             >
-              {enemy.id === 'disciple' && <NullPointerDisciple />}
-              {enemy.id === 'demon' && <AsyncHeavenlyDemon />}
-              {enemy.id === 'grandmaster' && <LegacyCodeGrandmaster />}
+              <DynamicSprite 
+                isAttacking={isEnemyAttacking}
+                facingLeft={true}
+                imagePath={enemy.imagePath}
+                attackImagePaths={enemy.attackImagePaths}
+                fallbackComponent={
+                  enemy.id === 'disciple' ? <NullPointerDisciple /> :
+                  enemy.id === 'demon' ? <AsyncHeavenlyDemon /> :
+                  <LegacyCodeGrandmaster />
+                }
+              />
             </motion.div>
 
             <AnimatePresence>
@@ -223,24 +312,49 @@ export const BattleArena: React.FC<BattleArenaProps> = ({
         </div>
       )}
 
-      {/* Center Clash Effect on correct answer */}
+      {/* ---------------- PROJECTILES & HIT EFFECTS ---------------- */}
       <AnimatePresence>
-        {isPlayerAttacking && (
+        {/* Player Ranged Projectile */}
+        {isPlayerAttacking && playerAttackType === 'ranged' && (
           <motion.div
-            initial={{ opacity: 0, scale: 0, x: -50 }}
-            animate={{ opacity: 1, scale: 2, x: 50 }}
-            exit={{ opacity: 0, scale: 3 }}
-            className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-40 pointer-events-none w-32 h-32 bg-cyan-400 rounded-full blur-[20px] mix-blend-screen"
-            transition={{ duration: 0.2 }}
+            initial={{ left: '20%', y: '-50%', opacity: 0, scale: 0.5 }}
+            animate={{ left: '75%', opacity: 1, scale: 1.5 }}
+            exit={{ opacity: 0, scale: 2 }}
+            transition={{ duration: 0.3 }}
+            className="absolute top-[60%] -translate-y-1/2 z-40 w-16 h-16 bg-cyan-400 rounded-full blur-[10px] mix-blend-screen pointer-events-none drop-shadow-[0_0_20px_rgba(6,182,212,1)]"
           />
         )}
+
+        {/* Enemy Ranged Projectile */}
+        {isEnemyAttacking && enemyAttackType === 'ranged' && (
+          <motion.div
+            initial={{ left: '75%', y: '-50%', opacity: 0, scale: 0.5 }}
+            animate={{ left: '20%', opacity: 1, scale: 1.5 }}
+            exit={{ opacity: 0, scale: 2 }}
+            transition={{ duration: 0.3 }}
+            className="absolute top-[60%] -translate-y-1/2 z-40 w-16 h-16 bg-red-500 rounded-full blur-[10px] mix-blend-screen pointer-events-none drop-shadow-[0_0_20px_rgba(239,68,68,1)]"
+          />
+        )}
+
+        {/* Player Hit Effect (On Enemy side) */}
+        {isPlayerAttacking && (
+          <motion.div
+            initial={{ opacity: 0, scale: 0 }}
+            animate={{ opacity: 1, scale: 2 }}
+            exit={{ opacity: 0, scale: 3 }}
+            className="absolute top-[60%] right-[20%] -translate-y-1/2 z-40 pointer-events-none w-32 h-32 bg-cyan-400 rounded-full blur-[20px] mix-blend-screen"
+            transition={{ duration: 0.2, delay: playerAttackType === 'ranged' ? 0.2 : 0.1 }}
+          />
+        )}
+
+        {/* Enemy Hit Effect (On Player side) */}
         {isEnemyAttacking && (
           <motion.div
-            initial={{ opacity: 0, scale: 0, x: 50 }}
-            animate={{ opacity: 1, scale: 2, x: -50 }}
+            initial={{ opacity: 0, scale: 0 }}
+            animate={{ opacity: 1, scale: 2 }}
             exit={{ opacity: 0, scale: 3 }}
-            className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-40 pointer-events-none w-32 h-32 bg-red-600 rounded-full blur-[20px] mix-blend-screen"
-            transition={{ duration: 0.2 }}
+            className="absolute top-[60%] left-[20%] -translate-y-1/2 z-40 pointer-events-none w-32 h-32 bg-red-600 rounded-full blur-[20px] mix-blend-screen"
+            transition={{ duration: 0.2, delay: enemyAttackType === 'ranged' ? 0.2 : 0.1 }}
           />
         )}
       </AnimatePresence>

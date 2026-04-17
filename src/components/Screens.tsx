@@ -60,24 +60,31 @@ export const CharacterSelectScreen: React.FC<CharacterSelectScreenProps> = ({ ch
       <h2 className="text-3xl font-black text-white mb-2 tracking-widest uppercase">Choose Your Path</h2>
       <p className="text-slate-400 italic font-serif mb-10">Select a cultivator to represent you in battle.</p>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl w-full">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-6xl w-full">
         {characters.map((char, i) => (
           <motion.div
             key={char.id}
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: i * 0.1 }}
-            className="bg-slate-900 border border-slate-700 hover:border-cyan-500 rounded-xl p-8 cursor-pointer transition-colors group relative overflow-hidden"
+            className="bg-slate-900 border border-slate-700 hover:border-cyan-500 rounded-xl p-8 cursor-pointer transition-colors group relative overflow-hidden flex flex-col items-center"
             onClick={() => onSelect(char)}
           >
-            <div className="absolute right-0 top-0 opacity-5 text-9xl font-black -mt-4 -mr-4 group-hover:text-cyan-500 transition-colors pointer-events-none">
+            <div className="absolute right-0 top-0 opacity-5 text-9xl font-black -mt-4 -mr-4 group-hover:text-cyan-500 transition-colors pointer-events-none z-0">
               {i + 1}
             </div>
-            <h3 className="text-2xl font-black text-cyan-400 mb-1">{char.name}</h3>
-            <div className="text-slate-300 font-mono text-sm mb-4">HP Base: {char.maxHp}</div>
-            <p className="text-slate-400 text-sm leading-relaxed">{char.description}</p>
             
-            <div className="mt-6 opacity-0 group-hover:opacity-100 transition-opacity">
+            {char.imagePath && (
+              <div className="w-32 h-32 mb-4 relative z-10">
+                <img src={char.imagePath} alt={char.name} className="w-full h-full object-contain drop-shadow-lg" />
+              </div>
+            )}
+
+            <h3 className="text-2xl font-black text-cyan-400 mb-1 z-10">{char.name}</h3>
+            <div className="text-slate-300 font-mono text-sm mb-4 z-10">HP Base: {char.maxHp}</div>
+            <p className="text-slate-400 text-sm leading-relaxed z-10">{char.description}</p>
+            
+            <div className="mt-6 opacity-0 group-hover:opacity-100 transition-opacity z-10">
               <span className="text-cyan-400 font-bold uppercase text-xs tracking-widest border-b border-cyan-400 pb-1">Select Path</span>
             </div>
           </motion.div>
@@ -111,16 +118,23 @@ export const BossSelectScreen: React.FC<BossSelectScreenProps> = ({ bosses, onSe
             }`}
             onClick={() => onSelect(boss)}
           >
-            <div className="text-xs uppercase tracking-widest font-bold mb-2 opacity-60 flex justify-between">
+            <div className="text-xs uppercase tracking-widest font-bold mb-2 opacity-60 flex justify-between z-10 relative">
               <span className={boss.difficulty === 'easy' ? 'text-green-400' : boss.difficulty === 'medium' ? 'text-purple-400' : 'text-red-400'}>
                 {boss.difficulty}
               </span>
               <span className="text-slate-500">HP: {boss.maxHp}</span>
             </div>
-            <h3 className="text-xl font-black text-white mb-1 leading-tight">{boss.title}</h3>
-            <h4 className="text-sm font-serif italic text-slate-400 mb-6">{boss.name}</h4>
             
-            <div className="text-center opacity-0 group-hover:opacity-100 transition-opacity">
+            {boss.imagePath && (
+              <div className="w-full h-32 mb-4 relative z-10">
+                <img src={boss.imagePath} alt={boss.name} className="w-full h-full object-contain drop-shadow-lg" />
+              </div>
+            )}
+            
+            <h3 className="text-xl font-black text-white mb-1 leading-tight z-10 relative">{boss.title}</h3>
+            <h4 className="text-sm font-serif italic text-slate-400 mb-6 z-10 relative">{boss.name}</h4>
+            
+            <div className="text-center opacity-0 group-hover:opacity-100 transition-opacity z-10 relative">
               <span className="text-red-500 font-bold uppercase text-xs tracking-widest border-b border-red-500 pb-1">Begin Duel</span>
             </div>
           </motion.div>
@@ -132,11 +146,13 @@ export const BossSelectScreen: React.FC<BossSelectScreenProps> = ({ bosses, onSe
 
 interface EndScreenProps {
   gameState: GameState;
+  player?: import('../types').PlayerCharacter | null;
+  enemy?: import('../types').Enemy | null;
   onRestart: () => void;
   bestScore: number;
 }
 
-export const EndScreen: React.FC<EndScreenProps> = ({ gameState, onRestart, bestScore }) => {
+export const EndScreen: React.FC<EndScreenProps> = ({ gameState, player, enemy, onRestart, bestScore }) => {
   const isWin = gameState.status === 'win';
   const accuracy = Math.round((gameState.correctAnswers / Math.max(1, (gameState.correctAnswers + gameState.wrongAnswers))) * 100);
   const isNewBest = gameState.score > bestScore;
@@ -165,9 +181,56 @@ export const EndScreen: React.FC<EndScreenProps> = ({ gameState, onRestart, best
           isWin ? 'border-cyan-500 shadow-[0_20px_50px_rgba(6,182,212,0.1)]' : 'border-red-600 shadow-[0_20px_50px_rgba(220,38,38,0.2)]'
         }`}
       >
-        <div className="text-4xl mb-4 font-serif">{isWin ? '⛩️' : '🩸'}</div>
+        {isWin ? (
+          <div className="relative w-48 h-48 md:w-64 md:h-64 mx-auto mb-6 flex items-center justify-center">
+            {/* Dead villain (Back/Base layer) */}
+            <motion.img 
+              src={enemy?.deathImagePath || "/dead_villain.png"} 
+              alt="Defeated Villain"
+              className="absolute w-full h-full object-contain z-10"
+              initial={{ scale: 0, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              transition={{ type: 'spring', bounce: 0.5, delay: 0.1 }}
+              onError={(e) => { e.currentTarget.style.display = 'none'; }}
+            />
+            {/* Hero winning (Front/Top layer) */}
+            <motion.img 
+              src={player?.winImagePath || "/hero_win.png"} 
+              alt="Hero Victory"
+              className="absolute w-3/4 h-3/4 object-contain z-20 drop-shadow-[0_0_30px_rgba(234,179,8,0.4)]"
+              initial={{ y: -50, opacity: 0, scale: 1.2 }}
+              animate={{ y: 0, opacity: 1, scale: 1 }}
+              transition={{ type: 'spring', bounce: 0.5, delay: 0.6 }}
+              onError={(e) => { e.currentTarget.style.display = 'none'; }}
+            />
+          </div>
+        ) : (
+          <div className="relative w-48 h-48 md:w-64 md:h-64 mx-auto mb-6 flex items-center justify-center">
+            {/* Dead hero (Back/Base layer) */}
+            <motion.img 
+              src={player?.deathImagePath || "/hero_death.png"} 
+              alt="Defeated Hero"
+              className="absolute w-full h-full object-contain z-10"
+              initial={{ scale: 0, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              transition={{ type: 'spring', bounce: 0.5, delay: 0.1 }}
+              onError={(e) => { e.currentTarget.style.display = 'none'; }}
+            />
+             {/* Villain Win screen (Front/Top layer) */}
+             <motion.img 
+              src={enemy?.winImagePath || "/villain_win.png"} 
+              alt="Villain Victory"
+              className="absolute w-3/4 h-3/4 object-contain z-20 drop-shadow-[0_0_30px_rgba(220,38,38,0.4)]"
+              initial={{ y: -50, opacity: 0, scale: 1.2 }}
+              animate={{ y: 0, opacity: 1, scale: 1 }}
+              transition={{ type: 'spring', bounce: 0.5, delay: 0.6 }}
+              onError={(e) => { e.currentTarget.style.display = 'none'; }}
+            />
+          </div>
+        )}
+        
         <h1 className={`text-3xl md:text-4xl font-black mb-2 uppercase tracking-tight ${
-          isWin ? 'text-transparent bg-clip-text bg-gradient-to-r from-cyan-300 to-blue-500' : 'text-red-500'
+          isWin ? 'text-transparent bg-clip-text bg-gradient-to-r from-yellow-300 to-yellow-600' : 'text-red-500'
         }`}>
           {isWin ? 'Adversary Defeated' : 'Qi Deviation'}
         </h1>

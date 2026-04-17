@@ -16,6 +16,11 @@ export interface PlayerCharacter {
   name: string;
   maxHp: number;
   description: string;
+  imagePath?: string;
+  attackImagePaths?: string[];
+  attackType?: 'melee' | 'ranged';
+  winImagePath?: string;
+  deathImagePath?: string;
 }
 
 export interface Enemy {
@@ -25,6 +30,11 @@ export interface Enemy {
   currentHp: number;
   difficulty: Difficulty;
   title: string;
+  imagePath?: string;
+  attackImagePaths?: string[];
+  attackType?: 'melee' | 'ranged';
+  winImagePath?: string;
+  deathImagePath?: string;
 }
 
 export interface GameState {
