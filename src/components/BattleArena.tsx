@@ -241,6 +241,7 @@ export const BattleArena: React.FC<BattleArenaProps> = ({
           <AnimatePresence>
             {damageTakenByPlayer && (
               <motion.div
+                key="playerDamage"
                 initial={{ opacity: 0, scale: 0.5, y: 20 }}
                 animate={{ opacity: 1, scale: 1.5, y: -80, rotate: Math.random() * 20 - 10 }}
                 exit={{ opacity: 0, y: -100 }}
@@ -299,6 +300,7 @@ export const BattleArena: React.FC<BattleArenaProps> = ({
             <AnimatePresence>
               {damageTakenByEnemy && (
                 <motion.div
+                  key="enemyDamage"
                   initial={{ opacity: 0, scale: 0.5, y: 20 }}
                   animate={{ opacity: 1, scale: 1.5, y: -80, rotate: Math.random() * 20 - 10 }}
                   exit={{ opacity: 0, y: -100 }}
@@ -317,6 +319,7 @@ export const BattleArena: React.FC<BattleArenaProps> = ({
         {/* Player Ranged Projectile */}
         {isPlayerAttacking && playerAttackType === 'ranged' && (
           <motion.div
+            key="playerProjectile"
             initial={{ left: '20%', y: '-50%', opacity: 0, scale: 0.5 }}
             animate={{ left: '75%', opacity: 1, scale: 1.5 }}
             exit={{ opacity: 0, scale: 2 }}
@@ -328,6 +331,7 @@ export const BattleArena: React.FC<BattleArenaProps> = ({
         {/* Enemy Ranged Projectile */}
         {isEnemyAttacking && enemyAttackType === 'ranged' && (
           <motion.div
+            key="enemyProjectile"
             initial={{ left: '75%', y: '-50%', opacity: 0, scale: 0.5 }}
             animate={{ left: '20%', opacity: 1, scale: 1.5 }}
             exit={{ opacity: 0, scale: 2 }}
@@ -339,6 +343,7 @@ export const BattleArena: React.FC<BattleArenaProps> = ({
         {/* Player Hit Effect (On Enemy side) */}
         {isPlayerAttacking && (
           <motion.div
+            key="playerHit"
             initial={{ opacity: 0, scale: 0 }}
             animate={{ opacity: 1, scale: 2 }}
             exit={{ opacity: 0, scale: 3 }}
@@ -350,6 +355,7 @@ export const BattleArena: React.FC<BattleArenaProps> = ({
         {/* Enemy Hit Effect (On Player side) */}
         {isEnemyAttacking && (
           <motion.div
+            key="enemyHit"
             initial={{ opacity: 0, scale: 0 }}
             animate={{ opacity: 1, scale: 2 }}
             exit={{ opacity: 0, scale: 3 }}

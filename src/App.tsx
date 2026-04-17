@@ -141,8 +141,12 @@ export default function App() {
     }
   }, [gameState.status, gameState.score, bestScore]);
 
+  const logIdRef = useRef<number>(0);
+
   const addToLog = useCallback((text: string, type: 'player' | 'enemy' | 'system') => {
-    setBattleLog(prev => [{ id: Math.random().toString(), text, type }, ...prev].slice(0, 5));
+    logIdRef.current++;
+    const newId = `log_${logIdRef.current}`;
+    setBattleLog(prev => [{ id: newId, text, type }, ...prev].slice(0, 5));
   }, []);
 
   const getNewQuestion = useCallback((pool: Question[], diff: 'easy' | 'medium' | 'hard') => {
